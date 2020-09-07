@@ -1,15 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using GraphQL.Server;
+using GraphQL.Server.Ui.Playground;
+using GraphQL.Types;
+using MediaIndexServer.WebApi.GraphQL;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace MediaIndexServer.WebApi
 {
@@ -26,6 +24,17 @@ namespace MediaIndexServer.WebApi
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+
+            services.AddSingleton<MediaIndexMutation>();
+            services.AddSingleton<MediaIndexQuery>();
+            services.AddSingleton<ISchema, MediaIndexSchema>();
+
+            services.Configure<KestrelServerOptions>(options =>
+            {
+                options.AllowSynchronousIO = true;
+            });
+
+            services.AddGraphQL(x => x.ExposeExceptions = true).AddGraphTypes();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -41,6 +50,9 @@ namespace MediaIndexServer.WebApi
             app.UseRouting();
 
             app.UseAuthorization();
+
+            app.UseGraphQL<ISchema>();
+            app.UseGraphQLPlayground(new GraphQLPlaygroundOptions());
 
             app.UseEndpoints(endpoints =>
             {
